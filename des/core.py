@@ -156,8 +156,8 @@ def derive_keys(key, rounds):
     next_key = next_key >> 28, next_key & 0x0fffffff
     if rounds == 1:
         next_key = rotate_left(next_key[0], 1), rotate_left(next_key[1], 1)
-    else:
-        for bits in ROTATES:
+    elif rounds > 1:
+        for bits in ROTATES[:rounds]:
             next_key = rotate_left(
                 next_key[0], bits), rotate_left(next_key[1], bits)
     yield permute(next_key[0] << 28 | next_key[1], 56, PERMUTED_CHOICE2)
