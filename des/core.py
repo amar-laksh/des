@@ -150,13 +150,17 @@ def f(block, key):
     return permute(ret, 32, PERMUTATION)
 
 
-def derive_keys(key):
+def derive_keys(key, rounds):
     key, = struct.unpack(">Q", key)
     next_key = permute(key, 64, PERMUTED_CHOICE1)
     next_key = next_key >> 28, next_key & 0x0fffffff
-    for bits in ROTATES:
-        next_key = rotate_left(next_key[0], bits), rotate_left(next_key[1], bits)
-        yield permute(next_key[0] << 28 | next_key[1], 56, PERMUTED_CHOICE2)
+    if rounds == 1:
+        next_key = rotate_left(next_key[0], 1), rotate_left(next_key[1], 1)
+    else:
+        for bits in ROTATES:
+            next_key = rotate_left(
+                next_key[0], bits), rotate_left(next_key[1], bits)
+    yield permute(next_key[0] << 28 | next_key[1], 56, PERMUTED_CHOICE2)
 
 
 def encode_block(block, derived_keys, encryption):

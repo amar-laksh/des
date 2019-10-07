@@ -17,8 +17,9 @@ from .core import derive_keys, encode_block
 
 class DesKey(object):
     """A class for encryption using DES Key"""
-    def __init__(self, key):
-        self.__encryption_key = guard_key(key)
+
+    def __init__(self, key, rounds=16):
+        self.__encryption_key = guard_key(key, rounds)
         self.__decryption_key = self.__encryption_key[::-1]
         self.__key = key
 
@@ -68,7 +69,7 @@ def encode(block, key, encryption):
     return block
 
 
-def guard_key(key):
+def guard_key(key, rounds):
     if isinstance(key, bytearray):
         key = bytes(key)
 
@@ -77,13 +78,13 @@ def guard_key(key):
 
     k0, k1, k2 = key[:8], key[8:16], key[16:]
     if k1 == k2:
-        return tuple(derive_keys(k0)),
+        return tuple(derive_keys(k0, rounds)),
 
     k2 = k2 or k0
     if k1 == k0:
-        return tuple(derive_keys(k2)),
+        return tuple(derive_keys(k2, rounds)),
 
-    return tuple(tuple(derive_keys(k)) for k in (k0, k1, k2))
+    return tuple(tuple(derive_keys(k, rounds)) for k in (k0, k1, k2))
 
 
 def guard_message(message, padding, encryption):
@@ -104,10 +105,13 @@ def guard_initial(initial):
         if isinstance(initial, bytearray):
             initial = bytes(initial)
         if isinstance(initial, bytes):
-            assert len(initial) & 7 == 0, "The initial value should be of length 8(as `bytes` or `bytearray`)"
+            assert len(
+                initial) & 7 == 0, "The initial value should be of length 8(as `bytes` or `bytearray`)"
             return struct.unpack(">Q", initial)[0]
-        assert isinstance(initial, number_type), "The initial value should be an integer or bytes object"
-        assert -1 < initial < 1 << 32, "The initial value should be in range [0, 2**32) (as an integer)"
+        assert isinstance(
+            initial, number_type), "The initial value should be an integer or bytes object"
+        assert - \
+            1 < initial < 1 << 32, "The initial value should be in range [0, 2**32) (as an integer)"
     return initial
 
 
@@ -115,7 +119,8 @@ def handle(message, key, initial, padding, encryption):
     message = guard_message(message, padding, encryption)
     initial = guard_initial(initial)
 
-    blocks = (struct.unpack(">Q", message[i: i + 8])[0] for i in iter_range(0, len(message), 8))
+    blocks = (struct.unpack(">Q", message[i: i + 8])[0]
+              for i in iter_range(0, len(message), 8))
 
     if initial is None:
         # ECB
